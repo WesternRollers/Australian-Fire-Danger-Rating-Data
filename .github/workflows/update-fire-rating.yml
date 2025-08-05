@@ -22,7 +22,7 @@ jobs:
       run: npm install xml2js node-fetch
 
     - name: Run script
-      run: node update-fire-ratings.js
+      run: node update-fire-rating.js
 
     - name: Commit and push changes
       run: |

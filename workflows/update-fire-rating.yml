@@ -1,29 +1,33 @@
-const fs = require('fs');
-const fetch = require('node-fetch');
-const xml2js = require('xml2js');
+name: Update Fire Rating
 
-async function run() {
-  const feedUrl = 'https://www.cfa.vic.gov.au/cfa/rssfeed/tfbfdrforecast_rss.xml';
-  const response = await fetch(feedUrl);
-  const xml = await response.text();
-  const result = await xml2js.parseStringPromise(xml);
+on:
+  schedule:
+    - cron: '0 21 * * *'  # Runs every day at 7am AEST (21:00 UTC)
+  workflow_dispatch:      # Allows manual trigger
 
-  const description = result.rss.channel[0].item[0].description[0];
+jobs:
+  update:
+    runs-on: ubuntu-latest
 
-  const fireDangerMatch = description.match(/Central: ([A-Z\s]+)<br>/);
-  const fireDangerRating = fireDangerMatch ? fireDangerMatch[1].trim() : 'UNKNOWN';
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
 
-  const today = new Date().toISOString().split('T')[0];
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
 
-  const json = {
-    today: {
-      rating: fireDangerRating
-    },
-    updated: today
-  };
+    - name: Install dependencies
+      run: npm install xml2js node-fetch
 
-  fs.writeFileSync('fire-rating.json', JSON.stringify(json, null, 2));
-  console.log(`Updated fire-rating.json to: ${fireDangerRating}`);
-}
+    - name: Run script
+      run: node update-fire-rating.js
 
-run();
+    - name: Commit and push changes
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add fire-rating.json
+        git commit -m "Update fire rating"
+        git push
